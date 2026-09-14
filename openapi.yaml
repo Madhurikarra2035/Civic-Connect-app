@@ -1,0 +1,438 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: dashboard
+    description: Community overview operations
+  - name: issues
+    description: Civic issue reporting and resolution
+  - name: activities
+    description: Community activities and volunteering
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get community dashboard
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /issues:
+    get:
+      operationId: listIssues
+      tags: [issues]
+      summary: List civic issues
+      parameters:
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/Status"
+        - $ref: "#/components/parameters/Search"
+      responses:
+        "200":
+          description: Issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Issue"
+    post:
+      operationId: createIssue
+      tags: [issues]
+      summary: Report a civic issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueInput"
+      responses:
+        "201":
+          description: Created issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+  /issues/nearby:
+    get:
+      operationId: listNearbyIssues
+      tags: [issues]
+      summary: List issues near a location
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: radius
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 5
+      responses:
+        "200":
+          description: Nearby issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Issue"
+  /issues/{issueId}:
+    get:
+      operationId: getIssue
+      tags: [issues]
+      summary: Get an issue
+      parameters:
+        - $ref: "#/components/parameters/IssueId"
+      responses:
+        "200":
+          description: Issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /issues/{issueId}/status:
+    patch:
+      operationId: updateIssueStatus
+      tags: [issues]
+      summary: Update issue status
+      parameters:
+        - $ref: "#/components/parameters/IssueId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueStatusUpdate"
+      responses:
+        "200":
+          description: Updated issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+  /issues/{issueId}/vote:
+    post:
+      operationId: voteIssue
+      tags: [issues]
+      summary: Support an issue
+      parameters:
+        - $ref: "#/components/parameters/IssueId"
+      responses:
+        "200":
+          description: Updated issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+  /activities:
+    get:
+      operationId: listActivities
+      tags: [activities]
+      summary: List community activities
+      responses:
+        "200":
+          description: Activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Create a community activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityInput"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+  /activities/{activityId}/join:
+    post:
+      operationId: joinActivity
+      tags: [activities]
+      summary: Join a community activity
+      parameters:
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+components:
+  parameters:
+    IssueId:
+      name: issueId
+      in: path
+      required: true
+      schema:
+        type: number
+    Category:
+      name: category
+      in: query
+      required: false
+      schema:
+        type: string
+    Status:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+    Search:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    Dashboard:
+      type: object
+      properties:
+        userName:
+          type: string
+        locality:
+          type: string
+        totalIssues:
+          type: number
+        openIssues:
+          type: number
+        resolvedIssues:
+          type: number
+        volunteerActivities:
+          type: number
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+      required:
+        - userName
+        - locality
+        - totalIssues
+        - openIssues
+        - resolvedIssues
+        - volunteerActivities
+        - issues
+        - activities
+    Issue:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        address:
+          type: string
+        distance:
+          type: string
+        reportedAt:
+          type: string
+        updatedAt:
+          type: string
+        reporter:
+          type: string
+        department:
+          type: string
+        votes:
+          type: number
+        comments:
+          type: number
+        aiConfidence:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - title
+        - description
+        - category
+        - status
+        - priority
+        - address
+        - distance
+        - reportedAt
+        - updatedAt
+        - reporter
+        - department
+        - votes
+        - comments
+        - aiConfidence
+        - latitude
+        - longitude
+        - imageUrl
+    IssueInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 3
+        description:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+      required:
+        - title
+        - description
+        - category
+        - address
+        - latitude
+        - longitude
+    IssueStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        comment:
+          type: string
+      required:
+        - status
+    Activity:
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        eventDate:
+          type: string
+        participants:
+          type: number
+        maxParticipants:
+          type: number
+        joined:
+          type: boolean
+        organizer:
+          type: string
+      required:
+        - id
+        - title
+        - description
+        - category
+        - location
+        - eventDate
+        - participants
+        - maxParticipants
+        - joined
+        - organizer
+    ActivityInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        eventDate:
+          type: string
+        maxParticipants:
+          type: number
+      required:
+        - title
+        - description
+        - category
+        - location
+        - eventDate
+        - maxParticipants
+
